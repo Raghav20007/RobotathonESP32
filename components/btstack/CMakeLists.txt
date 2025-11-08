@@ -71,3 +71,5 @@ idf_component_register(SRC_DIRS "${src_dirs}"
                     INCLUDE_DIRS "${include_dirs}"
                     PRIV_INCLUDE_DIRS "${priv_include_dirs}"
                     PRIV_REQUIRES ${priv_requires})
+
+

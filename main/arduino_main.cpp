@@ -3,6 +3,7 @@
 #include <Arduino_APDS9960.h>
 #include <Bluepad32.h>
 #include "controller_callbacks.h"
+#include <ESP32SharpIR.h>
 
 
 #define APDS9960_INT 2
@@ -17,6 +18,15 @@ APDS9960 sensor = APDS9960(Wire, APDS9960_INT);
 #define IN2 17
 #define IN3 18
 #define IN4 19
+
+#include "sdkconfig.h"
+#include <Arduino.h>
+
+#include <QTRSensors.h>
+
+// make a line calibration (?) funciton , if setup isnt already one
+//^ tomorrow work on it and finish it. Then, test at EER to later do wall sensor. yay. 
+//test wall sensor on friday or thrusday if you are genuinely try hard :')
 
 
 extern ControllerPtr myControllers[BP32_MAX_GAMEPADS];
@@ -50,18 +60,37 @@ void ActivationC() {
     Serial.printf("Saved color: R=%d G=%d B=%d A=%d\n", r, g, b, a);
 }
 
-
-void moveForward() {
+void moveForward() { //motor goes forward
     digitalWrite(IN1, HIGH);
     digitalWrite(IN2, LOW);
     digitalWrite(IN3, HIGH);
-    digitalWrite(IN4, LOW);
+    digitalWrite(IN4, LOW); // flip 3 and 4 depending on arrangement of motors
 }
 
-void stopMotors() {
+void stopMotors() { //motor stops
     digitalWrite(IN1, LOW);
     digitalWrite(IN2, LOW);
     digitalWrite(IN3, LOW);
+    digitalWrite(IN4, LOW);
+}
+
+void moveBackwards(){
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+    digitalWrite(IN3, LOW); //same comment as moveForward
+    digitalWrite(IN4, HIGH);
+}
+
+void turnLeft(){
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, LOW);
+    digitalWrite(IN3, HIGH); //if it in fact does not turn left, switch. be consist to changes made to mF
+    digitalWrite(IN4, LOW);
+}
+void turnRight(){
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+    digitalWrite(IN3, LOW); //if it in fact does not turn right, switch. be consist to changes made to mF
     digitalWrite(IN4, LOW);
 }
 
@@ -75,7 +104,6 @@ void foo(ControllerPtr myController) {
         return;
     }
 
-   
     if (myController->y() && isCollected) {
         Serial.println("Moving");
         colorFound = false;
@@ -105,13 +133,24 @@ void foo(ControllerPtr myController) {
             vTaskDelay(10);
         }
     }
+    if(myController->axisY() && myController->axisY() > 100){
+        moveForward();
+        return;
+    }
+    if(myController->axisY() && myController->axisY() < -100){ // adjust parameters if data cant be negative
+        moveBackwards();
+        return;
+    }
+    else{
+        stopMotors();
+    }
 }
 
 
 void setup() {
     Serial.begin(115200);
 
-  
+  //add new setup functions here
     pinMode(IN1, OUTPUT);
     pinMode(IN2, OUTPUT);
     pinMode(IN3, OUTPUT);
@@ -119,6 +158,7 @@ void setup() {
 
   
     setupColor();
+    //Sensorsetup();
 
    
     BP32.setup(&onConnectedController, &onDisconnectedController);
